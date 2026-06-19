@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paddle Score Counter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --court: #1a3a2a;
+    --court-mid: #1e4530;
+    --net: #f0c040;
+    --team-a: #e84040;
+    --team-b: #3a9de8;
+    --white: #f5f5f0;
+    --grey: #7a8a80;
+    --dark: #0d1f16;
+    --card: #142d1e;
+    --radius: 12px;
+  }
+
+  body {
+    background: var(--court);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+    gap: 20px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 6vw, 42px);
+    letter-spacing: 4px;
+    color: var(--net);
+    text-align: center;
+  }
+
+  /* ── SETUP PANEL ── */
+  #setup {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border: 1px solid #1e4530;
+  }
+
+  #setup h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    font-size: 20px;
+    color: var(--net);
+    text-align: center;
+  }
+
+  .setup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .setup-row label {
+    font-size: 14px;
+    color: var(--grey);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .setup-row input[type="text"] {
+    background: var(--court-mid);
+    border: 1px solid #2a5a38;
+    border-radius: 8px;
+    color: var(--white);
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    padding: 8px 12px;
+    width: 140px;
+    text-align: center;
+    outline: none;
+  }
+
+  .setup-row input[type="text"]:focus {
+    border-color: var(--net);
+  }
+
+  .games-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .games-selector button {
+    background: var(--court-mid);
+    border: 1px solid #2a5a38;
+    color: var(--white);
+    width: 34px; height: 34px;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .games-selector button:hover { background: #2a5a38; }
+
+  .games-selector span {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--net);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .games-selector small {
+    font-size: 11px;
+    color: var(--grey);
+    text-align: center;
+  }
+
+  #startBtn {
+    background: var(--net);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    padding: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  #startBtn:hover { opacity: 0.9; transform: scale(1.02); }
+
+  /* ── SCOREBOARD ── */
+  #scoreboard {
+    display: none;
+    width: 100%;
+    max-width: 560px;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Games won */
+  .sets-bar {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .set-chip {
+    flex: 1;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .set-chip.team-a { border-color: var(--team-a); }
+  .set-chip.team-b { border-color: var(--team-b); }
+
+  .set-chip .team-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  .set-chip.team-a .team-label { color: var(--team-a); }
+  .set-chip.team-b .team-label { color: var(--team-b); }
+
+  .set-chip .sets-won {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 1;
+  }
+
+  .set-chip .sets-label {
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .vs-badge {
+    display: flex;
+    align-items: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--grey);
+    letter-spacing: 2px;
+  }
+
+  /* Target games */
+  .target-info {
+    text-align: center;
+    font-size: 13px;
+    color: var(--grey);
+    letter-spacing: 1px;
+  }
+
+  .target-info span { color: var(--net); font-weight: 700; }
+
+  /* Main score display */
+  .score-panel {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid #1e4530;
+    overflow: hidden;
+  }
+
+  .score-panel .score-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    background: var(--dark);
+    padding: 10px 16px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-header .team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  .score-header .team-name.a { color: var(--team-a); text-align: left; }
+  .score-header .team-name.b { color: var(--team-b); text-align: right; }
+
+  .score-header .score-label {
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    padding: 20px 16px;
+    gap: 8px;
+  }
+
+  .score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 14vw, 88px);
+    line-height: 1;
+    text-align: center;
+    transition: transform 0.15s, color 0.2s;
+  }
+
+  .score-num.a { color: var(--team-a); }
+  .score-num.b { color: var(--team-b); }
+  .score-num.highlight { transform: scale(1.15); }
+
+  .score-divider {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: #2a5a38;
+    text-align: center;
+  }
+
+  /* Status strip */
+  .status-strip {
+    background: #0d1f16;
+    padding: 10px 16px;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    min-height: 42px;
+    transition: background 0.3s;
+  }
+
+  .status-strip.advantage { background: #2a2010; color: var(--net); }
+  .status-strip.serving { color: var(--grey); }
+  .status-strip.game-over { background: #1a0a0a; }
+
+  /* Buttons */
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .point-btn {
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .point-btn:active { transform: scale(0.96); }
+  .point-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .point-btn.a {
+    background: var(--team-a);
+    color: white;
+  }
+
+  .point-btn.b {
+    background: var(--team-b);
+    color: white;
+  }
+
+  .point-btn small {
+    font-size: 11px;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* Game history */
+  .history-panel {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid #1e4530;
+    padding: 16px;
+  }
+
+  .history-panel h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    color: var(--grey);
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--court-mid);
+  }
+
+  .history-item .game-num { color: var(--grey); font-weight: 600; }
+  .history-item .winner-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+
+  .history-item .winner-tag.a { color: var(--team-a); }
+  .history-item .winner-tag.b { color: var(--team-b); }
+
+  /* Winner overlay */
+  #winnerOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  #winnerOverlay.show { display: flex; }
+
+  #winnerOverlay .trophy { font-size: 72px; }
+
+  #winnerOverlay h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 56px);
+    letter-spacing: 4px;
+    color: var(--net);
+    line-height: 1.1;
+  }
+
+  #winnerOverlay p { color: var(--grey); font-size: 15px; }
+
+  #newMatchBtn {
+    background: var(--net);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+
+  #newMatchBtn:hover { opacity: 0.9; }
+
+  /* control row */
+  .ctrl-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid #2a5a38;
+    color: var(--grey);
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .ctrl-btn:hover { border-color: var(--net); color: var(--net); }
+</style>
+</head>
+<body>
+
+<h1>🏓 Paddle Scorer</h1>
+
+<!-- SETUP -->
+<div id="setup">
+  <h2>Match Setup</h2>
+
+  <div class="setup-row">
+    <label>Team A</label>
+    <input type="text" id="nameA" value="Team A" maxlength="12">
+  </div>
+
+  <div class="setup-row">
+    <label>Team B</label>
+    <input type="text" id="nameB" value="Team B" maxlength="12">
+  </div>
+
+  <div class="setup-row">
+    <label>Games to Win</label>
+    <div class="games-selector">
+      <button id="decGames">−</button>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <span id="gamesTarget">3</span>
+        <small>Best of <span id="bestOf">5</span></small>
+      </div>
+      <button id="incGames">+</button>
+    </div>
+  </div>
+
+  <button id="startBtn">Start Match</button>
+</div>
+
+<!-- SCOREBOARD -->
+<div id="scoreboard">
+
+  <!-- Games won -->
+  <div class="sets-bar">
+    <div class="set-chip team-a">
+      <div class="team-label" id="labelA2">Team A</div>
+      <div class="sets-won" id="gamesA">0</div>
+      <div class="sets-label">Games Won</div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="set-chip team-b">
+      <div class="team-label" id="labelB2">Team B</div>
+      <div class="sets-won" id="gamesB">0</div>
+      <div class="sets-label">Games Won</div>
+    </div>
+  </div>
+
+  <div class="target-info">First to <span id="targetDisplay">3</span> games wins the match</div>
+
+  <!-- Current game score -->
+  <div class="score-panel">
+    <div class="score-header">
+      <div class="team-name a" id="labelA3">Team A</div>
+      <div class="score-label">Current Game</div>
+      <div class="team-name b" id="labelB3">Team B</div>
+    </div>
+
+    <div class="score-row">
+      <div class="score-num a" id="scoreA">0</div>
+      <div class="score-divider">:</div>
+      <div class="score-num b" id="scoreB">0</div>
+    </div>
+
+    <div class="status-strip serving" id="statusStrip">LOVE ALL</div>
+  </div>
+
+  <!-- Point buttons -->
+  <div class="btn-row">
+    <button class="point-btn a" id="btnA">
+      <span id="btnLabelA">Team A</span>
+      <small>+ Point</small>
+    </button>
+    <button class="point-btn b" id="btnB">
+      <span id="btnLabelB">Team B</span>
+      <small>+ Point</small>
+    </button>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-row">
+    <button class="ctrl-btn" id="undoBtn">↩ Undo</button>
+    <button class="ctrl-btn" id="resetBtn">↺ Reset Match</button>
+  </div>
+
+  <!-- Game history -->
+  <div class="history-panel" id="historyPanel" style="display:none">
+    <h3>Game History</h3>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- Winner Overlay -->
+<div id="winnerOverlay">
+  <div class="trophy">🏆</div>
+  <h2 id="winnerText">Team A Wins!</h2>
+  <p id="winnerSub"></p>
+  <button id="newMatchBtn">New Match</button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const SCORES = ['LOVE', '15', '30', '45'];
+
+let state = {
+  nameA: 'Team A',
+  nameB: 'Team B',
+  target: 3,
+  ptsA: 0,   // raw points in current game (0–3+)
+  ptsB: 0,
+  gamesA: 0,
+  gamesB: 0,
+  history: [],   // { winner: 'A'|'B', scoreA: n, scoreB: n }
+  snapshot: null // for undo
+};
+
+// ── Setup ──────────────────────────────────────────────────────────────────
+const decGames = document.getElementById('decGames');
+const incGames = document.getElementById('incGames');
+const gamesTargetEl = document.getElementById('gamesTarget');
+const bestOfEl = document.getElementById('bestOf');
+
+function setTarget(n) {
+  if (n < 1) n = 1;
+  if (n > 9) n = 9;
+  state.target = n;
+  gamesTargetEl.textContent = n;
+  bestOfEl.textContent = (n * 2) - 1;
+}
+
+decGames.onclick = () => setTarget(state.target - 1);
+incGames.onclick = () => setTarget(state.target + 1);
+
+document.getElementById('startBtn').onclick = () => {
+  state.nameA = document.getElementById('nameA').value.trim() || 'Team A';
+  state.nameB = document.getElementById('nameB').value.trim() || 'Team B';
+  applyNames();
+  document.getElementById('setup').style.display = 'none';
+  const sb = document.getElementById('scoreboard');
+  sb.style.display = 'flex';
+  sb.style.flexDirection = 'column';
+  document.getElementById('targetDisplay').textContent = state.target;
+  render();
+};
+
+function applyNames() {
+  ['labelA2','labelA3'].forEach(id => document.getElementById(id).textContent = state.nameA);
+  ['labelB2','labelB3'].forEach(id => document.getElementById(id).textContent = state.nameB);
+  document.getElementById('btnLabelA').textContent = state.nameA;
+  document.getElementById('btnLabelB').textContent = state.nameB;
+}
+
+// ── Scoring logic ─────────────────────────────────────────────────────────
+function getDisplayScore(pts, otherPts) {
+  if (pts < 3 && otherPts < 3) return SCORES[pts];   // 0-3 → LOVE/15/30/45
+  if (pts === 3 && otherPts < 3) return '45';          // 45-30 etc.
+  if (pts < 3 && otherPts === 3) return SCORES[pts];
+  // Both >= 3 (deuce/advantage territory)
+  if (pts === otherPts) return 'DEUCE';
+  if (pts > otherPts) return 'ADV';
+  return '';
+}
+
+function getStatus() {
+  const a = state.ptsA, b = state.ptsB;
+
+  if (a < 3 && b < 3) {
+    if (a === 0 && b === 0) return { text: 'LOVE ALL', cls: 'serving' };
+    if (a === b) return { text: `${SCORES[a]} ALL`, cls: 'serving' };
+    return { text: `${SCORES[a]} – ${SCORES[b]}`, cls: 'serving' };
+  }
+
+  if (a >= 3 && b >= 3) {
+    if (a === b) return { text: 'DEUCE', cls: 'serving' };
+    if (a > b)  return { text: `ADVANTAGE ${state.nameA}`, cls: 'advantage' };
+    return { text: `ADVANTAGE ${state.nameB}`, cls: 'advantage' };
+  }
+
+  // One side at 45, other lower
+  return { text: `${SCORES[Math.min(a,3)]} – ${SCORES[Math.min(b,3)]}`, cls: 'serving' };
+}
+
+function checkGameWin() {
+  const a = state.ptsA, b = state.ptsB;
+  // Normal: reach 4 pts with 2+ gap; or deuce: 2 ahead
+  if (a >= 4 && a - b >= 2) return 'A';
+  if (b >= 4 && b - a >= 2) return 'B';
+  return null;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render() {
+  const a = state.ptsA, b = state.ptsB;
+
+  // Score display
+  const dA = getDisplayScore(a, b);
+  const dB = getDisplayScore(b, a);
+  const elA = document.getElementById('scoreA');
+  const elB = document.getElementById('scoreB');
+
+  elA.textContent = (a >= 3 && b >= 3 && a !== b) ? (a > b ? 'ADV' : '') : dA;
+  elB.textContent = (a >= 3 && b >= 3 && a !== b) ? (b > a ? 'ADV' : '') : dB;
+
+  // Deuce - show DEUCE on both
+  if (a >= 3 && b >= 3 && a === b) {
+    elA.textContent = 'DUC';
+    elB.textContent = 'DUC';
+  }
+
+  // Highlight whoever just scored (leading)
+  elA.classList.toggle('highlight', a > b);
+  elB.classList.toggle('highlight', b > a);
+
+  // Status strip
+  const status = getStatus();
+  const strip = document.getElementById('statusStrip');
+  strip.textContent = status.text;
+  strip.className = 'status-strip ' + status.cls;
+
+  // Games won
+  document.getElementById('gamesA').textContent = state.gamesA;
+  document.getElementById('gamesB').textContent = state.gamesB;
+}
+
+// ── Point buttons ─────────────────────────────────────────────────────────
+function addPoint(team) {
+  // Save snapshot for undo
+  state.snapshot = JSON.parse(JSON.stringify(state));
+
+  if (team === 'A') state.ptsA++;
+  else state.ptsB++;
+
+  const winner = checkGameWin();
+  if (winner) {
+    state.history.push({
+      game: state.gamesA + state.gamesB + 1,
+      winner,
+      ptsA: state.ptsA,
+      ptsB: state.ptsB
+    });
+
+    if (winner === 'A') state.gamesA++;
+    else state.gamesB++;
+
+    // Reset points for next game
+    state.ptsA = 0;
+    state.ptsB = 0;
+
+    render();
+    updateHistory();
+
+    // Check match winner
+    if (state.gamesA >= state.target || state.gamesB >= state.target) {
+      endMatch(winner);
+    }
+  } else {
+    render();
+  }
+}
+
+document.getElementById('btnA').onclick = () => addPoint('A');
+document.getElementById('btnB').onclick = () => addPoint('B');
+
+// ── Undo ──────────────────────────────────────────────────────────────────
+document.getElementById('undoBtn').onclick = () => {
+  if (!state.snapshot) return;
+  const snap = state.snapshot;
+  state.ptsA   = snap.ptsA;
+  state.ptsB   = snap.ptsB;
+  state.gamesA = snap.gamesA;
+  state.gamesB = snap.gamesB;
+  state.history = snap.history;
+  state.snapshot = null;
+  render();
+  updateHistory();
+};
+
+// ── History ───────────────────────────────────────────────────────────────
+function updateHistory() {
+  const panel = document.getElementById('historyPanel');
+  const list  = document.getElementById('historyList');
+
+  if (state.history.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+  list.innerHTML = state.history.map(h => {
+    const wName = h.winner === 'A' ? state.nameA : state.nameB;
+    return `<div class="history-item">
+      <span class="game-num">Game ${h.game}</span>
+      <span class="winner-tag ${h.winner.toLowerCase()}">🏅 ${wName}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── End Match ────────────────────────────────────────────────────────────
+function endMatch(winner) {
+  document.getElementById('btnA').disabled = true;
+  document.getElementById('btnB').disabled = true;
+
+  const name = winner === 'A' ? state.nameA : state.nameB;
+  const games = winner === 'A' ? state.gamesA : state.gamesB;
+
+  document.getElementById('winnerText').textContent = `${name} Wins!`;
+  document.getElementById('winnerSub').textContent =
+    `${state.gamesA} – ${state.gamesB} in games`;
+
+  document.getElementById('winnerOverlay').classList.add('show');
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+function resetAll() {
+  state.ptsA = 0; state.ptsB = 0;
+  state.gamesA = 0; state.gamesB = 0;
+  state.history = []; state.snapshot = null;
+  document.getElementById('btnA').disabled = false;
+  document.getElementById('btnB').disabled = false;
+  document.getElementById('winnerOverlay').classList.remove('show');
+  updateHistory();
+  render();
+}
+
+document.getElementById('resetBtn').onclick = () => {
+  if (confirm('Reset the entire match?')) resetAll();
+};
+
+document.getElementById('newMatchBtn').onclick = () => {
+  resetAll();
+  document.getElementById('scoreboard').style.display = 'none';
+  document.getElementById('setup').style.display = 'flex';
+};
+</script>
+</body>
+</html>
